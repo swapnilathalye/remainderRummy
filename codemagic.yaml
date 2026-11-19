@@ -62,7 +62,6 @@ workflows:
     environment:
       node: 22
       xcode: latest
-      cocoapods: default
       ios_signing:
         distribution_type: app_store
         bundle_identifier: io.github.swapnilathalye.remainderrummy
@@ -77,9 +76,6 @@ workflows:
           npx capacitor-assets generate --ios \
             --iconBackgroundColor '#160f1c' --splashBackgroundColor '#160f1c' || true
           npx cap sync ios
-      - name: Install pods
-        script: |
-          cd ios/App && pod install
       - name: Fetch signing files
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
@@ -92,7 +88,7 @@ workflows:
       - name: Build the ipa
         script: |
           xcode-project build-ipa \
-            --workspace ios/App/App.xcworkspace \
+            --project ios/App/App.xcodeproj \
             --scheme App
     artifacts:
       - build/ios/ipa/*.ipa

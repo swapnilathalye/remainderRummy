@@ -5,11 +5,16 @@ name: iOS
 # that part cannot be worked around.
 #
 # Without secrets this compiles the app unsigned, which proves the project
-# builds. With the four APPLE_* secrets it produces a signed .ipa and, if you
-# add the App Store Connect key, uploads it to TestFlight.
+# builds. With the four APPLE_* secrets it produces a signed .ipa.
 #
 # Codemagic (codemagic.yaml in this repo) does the same job with far less
-# certificate wrangling. Use that first; keep this as the fallback.
+# certificate wrangling. Use that first; keep this as the quick check that the
+# project still compiles, which costs nothing on a public repository.
+#
+# Capacitor 8 builds iOS with Swift Package Manager, not CocoaPods: there is
+# no Podfile and no .xcworkspace, only ios/App/App.xcodeproj plus a local
+# package in ios/App/CapApp-SPM. Anything you read online about `pod install`
+# for Capacitor applies to version 7 and earlier.
 
 on:
   workflow_dispatch:
@@ -31,7 +36,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '22'      # the Capacitor 8 CLI refuses anything lower
 
       - name: Install dependencies
         run: npm install
@@ -46,25 +51,36 @@ jobs:
             --iconBackgroundColor '#160f1c' \
             --splashBackgroundColor '#160f1c' || echo "no icon sources, carrying on"
           npx cap sync ios
-          cd ios/App && pod install
+          echo "--- what xcodebuild can see in this project ---"
+          xcodebuild -list -project ios/App/App.xcodeproj || true
 
-      - name: Build unsigned (always runs, proves the project compiles)
+      - name: Build unsigned (proves the project compiles)
         run: |
           set -o pipefail
           cd ios/App
+          # Capacitor's template ships no shared scheme. Xcode usually creates
+          # one on demand, but if it has not, fall back to building the target
+          # directly so the job reports a real compile result either way.
+          SCHEMES=$(xcodebuild -list -project App.xcodeproj 2>/dev/null \
+            | awk '/Schemes:/{found=1; next} found {print $1}')
+          echo "Schemes available: ${SCHEMES:-none}"
+          if echo "$SCHEMES" | grep -qx "App"; then
+            SELECT="-scheme App"
+          else
+            echo "No scheme named App; building the App target directly."
+            SELECT="-target App"
+          fi
+          # xcpretty only tidies the log, so fall back to raw output.
+          if command -v xcpretty >/dev/null 2>&1; then FORMAT=xcpretty; else FORMAT=cat; fi
           # No `|| true` here on purpose: if Xcode cannot build this project we
           # want the job to go red, not to pass quietly and mislead us.
-          # xcpretty only tidies the log, so fall back to raw output.
-          if command -v xcpretty >/dev/null 2>&1; then
-            FORMAT="xcpretty"
-          else
-            FORMAT="cat"
-          fi
-          xcodebuild -workspace App.xcworkspace -scheme App \
+          xcodebuild -project App.xcodeproj $SELECT \
             -configuration Release -sdk iphoneos \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
             build | $FORMAT
+
+      # ---- everything below only runs if you have added the signing secrets ----
 
       - name: Import signing certificate
         id: signing
@@ -105,7 +121,8 @@ jobs:
             <key>uploadSymbols</key><true/>
           </dict></plist>
           PLIST
-          xcodebuild -workspace App.xcworkspace -scheme App \
+          # Archiving needs a scheme; there is no building a target instead.
+          xcodebuild -project App.xcodeproj -scheme App \
             -configuration Release -sdk iphoneos \
             -archivePath build/App.xcarchive \
             DEVELOPMENT_TEAM="$TEAM_ID" archive
