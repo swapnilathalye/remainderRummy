@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Remainder Rummy — a card game where sets share a remainder and the divisor shifts mid-round.",
+  "description": "Remainder Rummy \u2014 a card game where sets share a remainder and the divisor shifts mid-round.",
   "scripts": {
     "test": "node test/engine.test.mjs",
     "bundle": "node tools/bundle.mjs",
@@ -16,17 +16,17 @@
     "icons": "capacitor-assets generate --iconBackgroundColor '#160f1c' --splashBackgroundColor '#160f1c'"
   },
   "dependencies": {
-    "@capacitor/android": "6.2.0",
-    "@capacitor/app": "6.0.2",
-    "@capacitor/core": "6.2.0",
-    "@capacitor/haptics": "6.0.2",
-    "@capacitor/ios": "6.2.0",
-    "@capacitor/splash-screen": "6.0.3",
-    "@capacitor/status-bar": "6.0.2"
+    "@capacitor/android": "8.6.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/ios": "8.6.2",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor/status-bar": "8.0.4"
   },
   "devDependencies": {
-    "@capacitor/assets": "3.0.5",
-    "@capacitor/cli": "6.2.0",
+    "@capacitor/assets": "4.0.0",
+    "@capacitor/cli": "8.6.2",
     "esbuild": "0.24.2"
   }
 }

@@ -86,6 +86,12 @@ push and produces a **debug APK** as a downloadable artifact — install it on
 any Android phone with developer mode on. Nothing to set up, no Mac, no Android
 Studio.
 
+### Publishing to the Play Store
+
+**[RELEASING-ANDROID.md](RELEASING-ANDROID.md) is the full walkthrough**, and
+worth reading before you start, because a first release takes about three
+weeks of calendar time rather than an afternoon. The short version is below.
+
 ### For the Play Store, you need a signed bundle
 
 Make a keystore once. This needs Java installed; any machine will do, including
@@ -219,8 +225,13 @@ Two things that catch people out on the Apple side:
 
 ## Turning on online multiplayer
 
-The work is already done. The screen never touches game state: it sends actions
-and receives events, and `www/js/net/` decides where those go.
+**Currently switched off in the interface.** `ONLINE_ENABLED` at the top of
+`www/js/ui/app.js` is `false`, because no server is deployed and a button that
+cannot work is worse than no button — particularly in a store review. The code
+is all there and tested; flip that flag and point `setup.url` at your server.
+
+The screen never touches game state: it sends actions and receives events, and
+`www/js/net/` decides where those go.
 
 **Try it locally right now:**
 

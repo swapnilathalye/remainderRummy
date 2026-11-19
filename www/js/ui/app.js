@@ -25,6 +25,14 @@ const SHIFT_COPY = {
   king: { label: 'On a King', desc: 'The divisor shifts whenever anyone discards a King, so players decide when it happens.' },
   biggest: { label: 'Biggest hand', desc: 'Every three laps, whoever is holding the most loose points chooses the next divisor.' }
 };
+// Online play is written and has been tested against the server in /server,
+// but nothing is deployed yet. Rather than offer players a button that cannot
+// work — and ship a dead feature to the stores — the option is hidden. Set
+// this to true once the server is running at a public wss:// address, and
+// change the default in `setup.url` below to point at it. Nothing else needs
+// to change: net/remote.js and the lobby are already wired up.
+const ONLINE_ENABLED = false;
+
 const GAME_LENGTHS = [
   { k: 'r3', label: '3 rounds', rounds: 3, target: 0 },
   { k: 'r5', label: '5 rounds', rounds: 5, target: 0 },
@@ -270,6 +278,7 @@ export function startApp () {
       '<p class="note">' + (len.target
         ? 'Keep playing until someone passes ' + len.target + ' points. Lowest total then wins.'
         : 'Play ' + len.rounds + ' rounds, then compare totals.') + '</p>' +
+      (!ONLINE_ENABLED ? '' :
       '<p class="over">Table</p>' +
       pills('o', [{ v: 'off', t: 'On this device' }, { v: 'on', t: 'Online' }], setup.online ? 'on' : 'off') +
       (setup.online
@@ -281,7 +290,7 @@ export function startApp () {
           '<input id="room" type="text" value="' + setup.room + '" autocomplete="off" spellcheck="false">' +
           '</div><p class="note">Needs the server in /server running. Everyone who joins the same ' +
           'room sits at the same table, and empty seats are filled with bots.</p>'
-        : '<p class="note">You and ' + (setup.players - 1) + ' computer players, no connection needed.</p>');
+        : '<p class="note">You and ' + (setup.players - 1) + ' computer players, no connection needed.</p>'));
   }
   function dealLabel () {
     return setup.online ? 'Join the table' : 'Deal for ' + setup.players + ' players';
@@ -636,6 +645,7 @@ export function startApp () {
   // ------------------------------------------------------------------ start
   function begin () {
     rememberFields();
+    if (!ONLINE_ENABLED) setup.online = false;
     const len = GAME_LENGTHS.find(g => g.k === setup.length);
     const options = {
       shiftMode: setup.shift,
