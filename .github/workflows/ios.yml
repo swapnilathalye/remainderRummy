@@ -18,7 +18,14 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    # macos-14 was retired on 2 November 2026. `macos-latest` tracks whatever
+    # GitHub currently supports, so this workflow will not quietly die the next
+    # time an image is retired — a job on a dead label is cancelled instantly
+    # with no runner and no error you can read.
+    # The trade-off is that Xcode can change underneath you. If you need a
+    # reproducible release build, pin `macos-15` instead and update it
+    # deliberately when GitHub announces the next retirement.
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
