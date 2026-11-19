@@ -1,0 +1,28 @@
+{
+  "appId": "io.github.swapnilathalye.remainderrummy",
+  "appName": "Remainder Rummy",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#160f1c"
+  },
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#160f1c",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 700,
+      "launchAutoHide": true,
+      "backgroundColor": "#160f1c",
+      "androidSplashResourceName": "splash",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#160f1c",
+      "overlaysWebView": true
+    }
+  }
+}

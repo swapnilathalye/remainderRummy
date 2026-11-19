@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#160f1c">
+<meta name="description" content="A card game where sets share a remainder and the divisor shifts mid-round.">
+<title>Remainder Rummy</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="stage" aria-label="Card table"></canvas>
+  <div id="labels"><div class="badge" id="discBadge" hidden></div></div>
+
+  <header class="rail" id="top">
+    <div class="brand">Remainder Rummy<small id="roundTxt">A card game of remainders</small></div>
+    <div class="chip"><b id="divNow">&divide; 4</b><span id="divNext">Sets share a remainder</span></div>
+    <div class="tools">
+      <button id="btnRules" type="button">Rules</button>
+      <button id="btnNew" type="button">New game</button>
+    </div>
+  </header>
+
+  <footer class="rail" id="bottom">
+    <div class="say">
+      <div id="status" aria-live="polite">Welcome to the table.</div>
+      <div id="me"></div>
+    </div>
+    <div class="acts">
+      <button id="btnStock" class="go" type="button" hidden>Draw from stock</button>
+      <button id="btnTake" type="button" hidden>Take discard</button>
+      <button id="btnDiscard" class="go" type="button" hidden>Choose a card</button>
+    </div>
+  </footer>
+
+  <div id="banner"></div>
+  <div id="overlay" hidden>
+    <div class="sheet">
+      <div id="sheetBody"></div>
+      <button id="sheetBtn" class="go" type="button">OK</button>
+    </div>
+  </div>
+  <div id="nogl" hidden>This game needs WebGL, which this browser or device has switched off.</div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script type="module">
+  import { startApp } from './js/ui/app.js';
+  startApp();
+</script>
+</body>
+</html>

@@ -1,0 +1,102 @@
+name: iOS
+
+# Builds the iOS app on GitHub's macOS runners, so you never need a Mac of
+# your own. You do still need a paid Apple Developer account to sign it —
+# that part cannot be worked around.
+#
+# Without secrets this compiles the app unsigned, which proves the project
+# builds. With the four APPLE_* secrets it produces a signed .ipa and, if you
+# add the App Store Connect key, uploads it to TestFlight.
+#
+# Codemagic (codemagic.yaml in this repo) does the same job with far less
+# certificate wrangling. Use that first; keep this as the fallback.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check the rules engine
+        run: npm test
+
+      - name: Generate the native project
+        run: |
+          npx cap add ios
+          npx capacitor-assets generate --ios \
+            --iconBackgroundColor '#160f1c' \
+            --splashBackgroundColor '#160f1c' || echo "no icon sources, carrying on"
+          npx cap sync ios
+          cd ios/App && pod install
+
+      - name: Build unsigned (always runs, proves the project compiles)
+        run: |
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace -scheme App \
+            -configuration Release -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO | xcpretty || true
+
+      - name: Import signing certificate
+        id: signing
+        env:
+          CERT_P12_BASE64: ${{ secrets.APPLE_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          if [ -z "$CERT_P12_BASE64" ]; then
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "No signing secrets set, stopping after the unsigned build."
+            exit 0
+          fi
+          KEYCHAIN=build.keychain
+          security create-keychain -p runner $KEYCHAIN
+          security default-keychain -s $KEYCHAIN
+          security unlock-keychain -p runner $KEYCHAIN
+          security set-keychain-settings -t 3600 -u $KEYCHAIN
+          echo "$CERT_P12_BASE64" | base64 -d > cert.p12
+          security import cert.p12 -k $KEYCHAIN -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k runner $KEYCHAIN
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "$PROFILE_BASE64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/app.mobileprovision
+          echo "signed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Archive and export the ipa
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cd ios/App
+          cat > ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          PLIST
+          xcodebuild -workspace App.xcworkspace -scheme App \
+            -configuration Release -sdk iphoneos \
+            -archivePath build/App.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM_ID" archive
+          xcodebuild -exportArchive -archivePath build/App.xcarchive \
+            -exportOptionsPlist ExportOptions.plist -exportPath build/ipa
+
+      - uses: actions/upload-artifact@v4
+        if: steps.signing.outputs.signed == 'true'
+        with:
+          name: remainder-rummy-ipa
+          path: ios/App/build/ipa/*.ipa

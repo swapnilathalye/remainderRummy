@@ -1,0 +1,17 @@
+{
+  "name": "remainder-rummy-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Websocket server for online Remainder Rummy tables. Shares the rules engine with the app.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "8.18.0"
+  }
+}

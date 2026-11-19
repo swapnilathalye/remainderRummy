@@ -1,0 +1,106 @@
+# Codemagic builds. This is the recommended way to get an iPhone build without
+# owning a Mac: Codemagic rents you one and manages the signing certificates
+# for you, which is the part that normally needs a Mac.
+#
+# Before the first run:
+#   1. Connect this repository in the Codemagic UI.
+#   2. Add an App Store Connect API key under Teams -> Integrations.
+#   3. Change `bundle_identifier` below to your own app id, and set it in
+#      capacitor.config.json too.
+#   4. For Android, upload your keystore in the UI and call it
+#      `remainder_rummy_keystore`.
+#
+# Codemagic occasionally changes this file's schema. If a build fails to start,
+# paste this into their YAML validator and fix whatever it flags.
+
+workflows:
+  android:
+    name: Android
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      node: 20
+      java: 21
+      android_signing:
+        - remainder_rummy_keystore
+      vars:
+        PACKAGE_NAME: "io.github.swapnilathalye.remainderrummy"
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Check the rules engine
+        script: npm test
+      - name: Generate the native project
+        script: |
+          npx cap add android
+          npx capacitor-assets generate --android \
+            --iconBackgroundColor '#160f1c' --splashBackgroundColor '#160f1c' || true
+          npx cap sync android
+      - name: Build the release bundle
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com
+      # Uncomment once you have uploaded one build by hand and created the
+      # Play Console service account.
+      # google_play:
+      #   credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      #   track: internal
+
+  ios:
+    name: iOS
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    integrations:
+      app_store_connect: AppStoreConnectKey
+    environment:
+      node: 20
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: io.github.swapnilathalye.remainderrummy
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Check the rules engine
+        script: npm test
+      - name: Generate the native project
+        script: |
+          npx cap add ios
+          npx capacitor-assets generate --ios \
+            --iconBackgroundColor '#160f1c' --splashBackgroundColor '#160f1c' || true
+          npx cap sync ios
+      - name: Install pods
+        script: |
+          cd ios/App && pod install
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+        environment:
+          BUNDLE_ID: io.github.swapnilathalye.remainderrummy
+      - name: Build the ipa
+        script: |
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - your.email@example.com
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

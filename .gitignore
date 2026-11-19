@@ -1,0 +1,15 @@
+node_modules/
+dist/
+# Capacitor regenerates these from www/ and capacitor.config.json.
+# They are left out so the repo stays small and CI builds from a clean slate.
+# If you start editing native code by hand, commit them instead.
+android/
+ios/
+*.keystore
+*.jks
+*.p12
+*.mobileprovision
+*.cer
+*.certSigningRequest
+.DS_Store
+.env
