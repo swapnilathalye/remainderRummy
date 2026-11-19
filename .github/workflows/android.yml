@@ -16,6 +16,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write      # needed to publish the APK as a release
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +51,30 @@ jobs:
         with:
           name: remainder-rummy-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
+
+      # An artifact needs a GitHub login and downloads as a zip, which is
+      # painful on a phone. A release asset is a plain .apk on a public link,
+      # so you can open it straight from the phone's browser and install it.
+      - name: Publish the APK where a phone can reach it
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk remainder-rummy-debug.apk
+          # Roll the same tag forward so the download link never changes.
+          gh release delete latest-debug --yes --cleanup-tag || true
+          gh release create latest-debug remainder-rummy-debug.apk \
+            --title "Latest debug build" \
+            --prerelease \
+            --notes "Debug build of \`${GITHUB_SHA:0:7}\`, built $(date -u '+%Y-%m-%d %H:%M UTC').
+
+          Install it by opening this page on an Android phone and tapping the
+          .apk below. Android will ask you to allow installs from your browser,
+          and Play Protect will warn that the developer is unknown — that is
+          expected for a debug build signed with a throwaway key.
+
+          Not for the Play Store: that needs the signed .aab from a build with
+          the keystore secrets set."
 
       # ---- everything below only runs if you have added the signing secrets ----
 
