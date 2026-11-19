@@ -43,11 +43,21 @@ jobs:
 
       - name: Build unsigned (always runs, proves the project compiles)
         run: |
+          set -o pipefail
           cd ios/App
+          # No `|| true` here on purpose: if Xcode cannot build this project we
+          # want the job to go red, not to pass quietly and mislead us.
+          # xcpretty only tidies the log, so fall back to raw output.
+          if command -v xcpretty >/dev/null 2>&1; then
+            FORMAT="xcpretty"
+          else
+            FORMAT="cat"
+          fi
           xcodebuild -workspace App.xcworkspace -scheme App \
             -configuration Release -sdk iphoneos \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO | xcpretty || true
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | $FORMAT
 
       - name: Import signing certificate
         id: signing
