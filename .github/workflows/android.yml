@@ -31,21 +31,28 @@ jobs:
           java-version: '21'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          source .github/workflows/retry.sh
+          retry npm install
 
       - name: Check the rules engine
         run: npm test
 
       - name: Generate the native project
         run: |
-          npx cap add android
+          source .github/workflows/retry.sh
+          retry npx cap add android
           npx capacitor-assets generate --android \
             --iconBackgroundColor '#160f1c' \
             --splashBackgroundColor '#160f1c' || echo "no icon sources, carrying on"
-          npx cap sync android
+          retry npx cap sync android
 
       - name: Build the debug APK
-        run: cd android && ./gradlew assembleDebug --no-daemon
+        run: |
+          source .github/workflows/retry.sh
+          cd android
+          # Gradle's first failure is usually a dependency it could not fetch.
+          retry 2 ./gradlew assembleDebug --no-daemon
 
       - uses: actions/upload-artifact@v4
         with:
@@ -98,7 +105,10 @@ jobs:
           RR_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           RR_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           RR_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: cd android && ./gradlew bundleRelease assembleRelease --no-daemon
+        run: |
+          source .github/workflows/retry.sh
+          cd android
+          retry 2 ./gradlew bundleRelease assembleRelease --no-daemon
 
       - uses: actions/upload-artifact@v4
         if: steps.signing.outputs.signed == 'true'

@@ -98,7 +98,8 @@ export function startApp () {
 
   function setStatus (html) {
     $('status').innerHTML = html;
-    resize();
+    // Long status lines wrap on a narrow screen, which makes the footer taller.
+    table.setGutter($('bottom').offsetHeight);
   }
 
   function chipText () {
@@ -184,6 +185,10 @@ export function startApp () {
       db.style.setProperty('--c', 'var(--r' + r + ')');
     } else db.hidden = true;
 
+    // Showing or hiding the buttons changes how tall the footer is, and your
+    // hand sits directly above it. Re-measure before the next frame lays the
+    // cards out, or they end up underneath the status line.
+    table.setGutter($('bottom').offsetHeight);
     table.setMyHand(myHand.map(c => c.id), divisor, selected, hovered);
     table.setPickable(drawing ? 'piles' : (discarding ? 'hand' : null));
     table.setBob(drawing ? 'piles' : null);

@@ -296,6 +296,13 @@ export function createTable (opts) {
   let viewH = 1;
   let gutter = 70;
 
+  // How much room the footer needs. Your hand is laid out just above it, so
+  // this has to be re-read whenever the footer changes height — which it does
+  // every time the buttons appear or the status text wraps to another line.
+  function setGutter (px) {
+    gutter = px;
+  }
+
   function resize (footerHeight) {
     viewW = host.clientWidth || 1;
     viewH = host.clientHeight || 1;
@@ -410,6 +417,7 @@ export function createTable (opts) {
   // ---------------------------------------------------------------- the API
   return {
     resize,
+    setGutter,
 
     seatCount: () => seatCount,
 

@@ -39,24 +39,28 @@ jobs:
           node-version: '22'      # the Capacitor 8 CLI refuses anything lower
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          source .github/workflows/retry.sh
+          retry npm install
 
       - name: Check the rules engine
         run: npm test
 
       - name: Generate the native project
         run: |
-          npx cap add ios
+          source .github/workflows/retry.sh
+          retry npx cap add ios
           npx capacitor-assets generate --ios \
             --iconBackgroundColor '#160f1c' \
             --splashBackgroundColor '#160f1c' || echo "no icon sources, carrying on"
-          npx cap sync ios
+          retry npx cap sync ios
           echo "--- what xcodebuild can see in this project ---"
           xcodebuild -list -project ios/App/App.xcodeproj || true
 
       - name: Build unsigned (proves the project compiles)
         run: |
           set -o pipefail
+          source "$GITHUB_WORKSPACE/.github/workflows/retry.sh"
           cd ios/App
           # Capacitor's template ships no shared scheme. Xcode usually creates
           # one on demand, but if it has not, fall back to building the target
@@ -74,11 +78,16 @@ jobs:
           if command -v xcpretty >/dev/null 2>&1; then FORMAT=xcpretty; else FORMAT=cat; fi
           # No `|| true` here on purpose: if Xcode cannot build this project we
           # want the job to go red, not to pass quietly and mislead us.
-          xcodebuild -project App.xcodeproj $SELECT \
-            -configuration Release -sdk iphoneos \
-            -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-            build | $FORMAT
+          # Retried twice because Swift Package Manager resolution reaches the
+          # network; a genuine compile error simply fails twice and goes red.
+          build_it () {
+            xcodebuild -project App.xcodeproj $SELECT \
+              -configuration Release -sdk iphoneos \
+              -derivedDataPath build \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+              build | $FORMAT
+          }
+          retry 2 build_it
 
       # ---- everything below only runs if you have added the signing secrets ----
 
